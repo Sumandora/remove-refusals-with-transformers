@@ -1,0 +1,5 @@
+jaxtyping
+transformers
+tqdm
+einops
+torch
