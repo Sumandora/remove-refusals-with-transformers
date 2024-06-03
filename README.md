@@ -2,7 +2,7 @@
 
 This is a crude, proof-of-concept implementation to remove refusals from an LLM model without using TransformerLens. This means that this supports every model that HF Transformers supports*.
 
-*While most models are compatible, some models are not. Mainly because of custom implementations. Some Qwen implementations for example don't work with ˋmodel.model.layersˋ for getting layers. They need ˋmodel.transformer.hˋ if I'm not mistaken.
+*While most models are compatible, some models are not. Mainly because of custom implementations. Some Qwen implementations for example don't work with `model.model.layers` for getting layers. They need `model.transformer.h` if I'm not mistaken.
 
 ## Usage
 1. Set model, quantization in compute_refusal_dir.py and inference.py (In my testing, quantization can be mixed)
