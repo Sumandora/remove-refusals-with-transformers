@@ -10,15 +10,14 @@ torch.inference_mode()
 
 torch.set_default_device("cpu")
 
-# MODEL_ID = "stabilityai/stablelm-2-1_6b"
-# MODEL_ID = "stabilityai/stablelm-2-zephyr-1_6b"
-# MODEL_ID = "Qwen/Qwen1.5-1.8B-Chat"
-# MODEL_ID = "Qwen/Qwen-1_8B-chat"
-MODEL_ID = "google/gemma-1.1-2b-it"
-# MODEL_ID = "google/gemma-1.1-7b-it"
-# MODEL_ID = "unsloth/gemma-1.1-7b-it-bnb-4bit"
+MODEL_ID = "stabilityai/stablelm-2-zephyr-1_6b"
+#MODEL_ID = "Qwen/Qwen1.5-1.8B-Chat"
+#MODEL_ID = "Qwen/Qwen-1_8B-chat"
+#MODEL_ID = "google/gemma-1.1-2b-it"
+#MODEL_ID = "google/gemma-1.1-7b-it"
+#MODEL_ID = "meta-llama/Meta-Llama-3-8B-Instruct"
 
-model = AutoModelForCausalLM.from_pretrained(MODEL_ID, trust_remote_code=True, device_map="auto", quantization_config=BitsAndBytesConfig(load_in_4bit=True, llm_int8_enable_fp32_cpu_offload=True, bnb_4bit_compute_dtype=torch.float16))
+model = AutoModelForCausalLM.from_pretrained(MODEL_ID, trust_remote_code=True, device_map="cuda", quantization_config=BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.float16))
 tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, trust_remote_code=True)
 
 refusal_dir = torch.load(MODEL_ID.replace("/", "_") + "_refusal_dir.pt")
@@ -62,6 +61,7 @@ conversation=[]
 
 streamer = TextStreamer(tokenizer)
 
+print(f"Chat with {MODEL_ID}:")
 while True:
     prompt = input()
     conversation.append({"role": "user", "content": prompt})
@@ -70,6 +70,6 @@ while True:
 
     gen = model.generate(toks.to(model.device), streamer=streamer, max_new_tokens=1337)
 
-    decoded = tokenizer.batch_decode(gen, skip_special_tokens=True)
-    conversation.append({"role": "assistant", "content": decoded})
+    decoded = tokenizer.batch_decode(gen[0][len(toks[0]):], skip_special_tokens=True)
+    conversation.append({"role": "assistant", "content": "".join(decoded)})
 
