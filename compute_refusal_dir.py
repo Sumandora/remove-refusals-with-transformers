@@ -1,24 +1,27 @@
-import jaxtyping
-
 import random
 
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, TextStreamer, BitsAndBytesConfig
-
-import einops
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 
 from tqdm import tqdm
 
 torch.inference_mode()
 
-MODEL_ID = "stabilityai/stablelm-2-zephyr-1_6b"
-#MODEL_ID = "Qwen/Qwen1.5-1.8B-Chat"
-#MODEL_ID = "Qwen/Qwen-1_8B-chat"
-#MODEL_ID = "google/gemma-1.1-2b-it"
-#MODEL_ID = "google/gemma-1.1-7b-it"
-#MODEL_ID = "meta-llama/Meta-Llama-3-8B-Instruct"
+MODEL_ID = "tiiuae/Falcon3-1B-Instruct"
+# MODEL_ID = "Qwen/Qwen3-1.7B"
+# MODEL_ID = "stabilityai/stablelm-2-zephyr-1_6b"
+# MODEL_ID = "Qwen/Qwen1.5-1.8B-Chat"
+# MODEL_ID = "Qwen/Qwen-1_8B-chat"
+# MODEL_ID = "google/gemma-1.1-2b-it"
+# MODEL_ID = "google/gemma-1.1-7b-it"
+# MODEL_ID = "meta-llama/Meta-Llama-3-8B-Instruct"
 
-model = AutoModelForCausalLM.from_pretrained(MODEL_ID, trust_remote_code=True, torch_dtype=torch.float16, quantization_config=BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.float16))
+model = AutoModelForCausalLM.from_pretrained(MODEL_ID,
+                                             trust_remote_code=True,
+                                             dtype=torch.float16,
+                                             device_map="cuda",
+                                             quantization_config=BitsAndBytesConfig(load_in_4bit=True,
+                                                                                    bnb_4bit_compute_dtype=torch.float16))
 tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, trust_remote_code=True)
 
 # settings:
@@ -39,18 +42,26 @@ harmful_instructions = random.sample(harmful, instructions)
 harmless_instructions = random.sample(harmless, instructions)
 
 harmful_toks = [
-    tokenizer.apply_chat_template(conversation=[{"role": "user", "content": insn}], add_generation_prompt=True,
+    tokenizer.apply_chat_template(conversation=[{"role": "user", "content": insn}],
+                                  add_generation_prompt=True,
                                   return_tensors="pt") for insn in harmful_instructions]
 harmless_toks = [
-    tokenizer.apply_chat_template(conversation=[{"role": "user", "content": insn}], add_generation_prompt=True,
+    tokenizer.apply_chat_template(conversation=[{"role": "user", "content": insn}],
+                                  add_generation_prompt=True,
                                   return_tensors="pt") for insn in harmless_instructions]
 
 max_its = instructions*2
 bar = tqdm(total=max_its)
 
+
 def generate(toks):
     bar.update(n=1)
-    return model.generate(toks.to(model.device), use_cache=False, max_new_tokens=1, return_dict_in_generate=True, output_hidden_states=True)
+    return model.generate(toks.to(model.device),
+                          use_cache=False,
+                          max_new_tokens=1,
+                          return_dict_in_generate=True,
+                          output_hidden_states=True)
+
 
 harmful_outputs = [generate(toks) for toks in harmful_toks]
 harmless_outputs = [generate(toks) for toks in harmless_toks]
